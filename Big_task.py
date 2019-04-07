@@ -20,7 +20,7 @@ def change_picture(map_params):
     return pixmap
 
 
-def get_params(obj, arg_l):
+def get_params(obj, arg_l, arg_z, booly=False):
     toponym = \
         obj["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
 
@@ -29,12 +29,16 @@ def get_params(obj, arg_l):
 
     map_params = {
         "ll": ",".join([toponym_longitude, toponym_lattitude]),
-        "z": 10,
+        "z": arg_z,
         "l": arg_l,
         "pt": "{},{},pm2dbm".format(toponym_longitude, toponym_lattitude)
     }
 
-    return map_params
+    if not booly:
+        return map_params
+    else:
+        return map_params,\
+               toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
 
 
 class BigTask(QMainWindow):
@@ -69,6 +73,7 @@ class BigTask(QMainWindow):
     def waste(self):
         self.map_params.pop('pt')
         self.picture = change_picture(self.map_params)
+        self.line2.setText('')
         self.draw()
 
     def draw(self):
@@ -86,7 +91,10 @@ class BigTask(QMainWindow):
             return None
 
         json_response = response.json()
-        self.map_params = get_params(json_response, self.map_params['l'])
+        self.map_params, address = \
+            get_params(json_response, self.map_params['l'],
+                       self.map_params['z'], booly=True)
+        self.line2.setText(address)
         self.picture = change_picture(self.map_params)
         self.draw()
 

@@ -7,8 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>636</width>
-    <height>727</height>
+    <height>785</height>
    </rect>
+  </property>
+  <property name="font">
+   <font>
+    <kerning>true</kerning>
+   </font>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -97,6 +102,38 @@
     </property>
     <property name="text">
      <string>Сбросить</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="line2">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>680</y>
+      <width>621</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 0, 0);</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>650</y>
+      <width>191</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Строка вывода полного адреса</string>
     </property>
    </widget>
   </widget>
