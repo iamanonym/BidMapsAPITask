@@ -55,6 +55,8 @@ class BigTask(QMainWindow):
         uic.loadUi('Big_task.ui', self)
         self.map_params = map_params
         self.picture = change_picture(map_params)
+        self.index = None
+        self.text = ''
         self.draw()
 
         self.map.clicked.connect(self.choose_map)
@@ -62,6 +64,20 @@ class BigTask(QMainWindow):
         self.skl.clicked.connect(self.choose_skl)
         self.search.clicked.connect(self.searching)
         self.waster.clicked.connect(self.waste)
+        self.rad1.toggled.connect(self.indexing)
+        self.rad2.toggled.connect(self.indexing)
+
+    def indexing(self):
+        if self.rad1.isChecked:
+            if self.text and self.index:
+                if not self.text.endswith(self.index):
+                    self.text += ', {}'.format(self.index)
+                    self.line2.setText(self.text)
+        if self.rad2.isChecked():
+            if self.text and self.index:
+                if self.text.endswith(self.index):
+                    self.text = ', '.join(self.text.split(', ')[:-1])
+                    self.line2.setText(self.text)
 
     def choose_map(self):
         self.map_params['l'] = 'map'
@@ -82,6 +98,8 @@ class BigTask(QMainWindow):
         self.map_params.pop('pt')
         self.picture = change_picture(self.map_params)
         self.line2.setText('')
+        self.text = ''
+        self.index = ''
         self.draw()
 
     def draw(self):
@@ -100,17 +118,14 @@ class BigTask(QMainWindow):
 
         json_response = response.json()
         radio = self.rad1.isChecked()
+        self.map_params, address, index = \
+            get_params(json_response, self.map_params['l'],
+                       self.map_params['z'], radio=True,
+                       booly=True)
         if radio:
-            self.map_params, address, index = \
-                get_params(json_response, self.map_params['l'],
-                           self.map_params['z'], radio=radio,
-                           booly=True)
             address += ', {}'.format(index)
-        else:
-            self.map_params, address = \
-                get_params(json_response, self.map_params['l'],
-                           self.map_params['z'], radio=radio,
-                           booly=True)
+        self.index = index
+        self.text = address
         self.line2.setText(address)
         self.picture = change_picture(self.map_params)
         self.draw()
