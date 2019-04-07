@@ -49,6 +49,7 @@ class BigTask(QMainWindow):
         self.sat.clicked.connect(self.choose_sat)
         self.skl.clicked.connect(self.choose_skl)
         self.search.clicked.connect(self.searching)
+        self.waster.clicked.connect(self.waste)
 
     def choose_map(self):
         self.map_params['l'] = 'map'
@@ -62,6 +63,11 @@ class BigTask(QMainWindow):
 
     def choose_skl(self):
         self.map_params['l'] = 'skl'
+        self.picture = change_picture(self.map_params)
+        self.draw()
+
+    def waste(self):
+        self.map_params.pop('pt')
         self.picture = change_picture(self.map_params)
         self.draw()
 
