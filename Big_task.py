@@ -20,17 +20,35 @@ def change_picture(map_params):
     return pixmap
 
 
+def get_params(obj, arg_l):
+    toponym = \
+        obj["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+
+    toponym_coodrinates = toponym["Point"]["pos"]
+    toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
+
+    map_params = {
+        "ll": ",".join([toponym_longitude, toponym_lattitude]),
+        "z": 10,
+        "l": arg_l,
+        "pt": "{},{},pm2dbm".format(toponym_longitude, toponym_lattitude)
+    }
+
+    return map_params
+
+
 class BigTask(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi('Big_task.ui', self)
         self.map_params = map_params
-        self.picture = None
+        self.picture = change_picture(map_params)
         self.draw()
 
         self.map.clicked.connect(self.choose_map)
         self.sat.clicked.connect(self.choose_sat)
         self.skl.clicked.connect(self.choose_skl)
+        self.search.clicked.connect(self.searching)
 
     def choose_map(self):
         self.map_params['l'] = 'map'
@@ -53,7 +71,20 @@ class BigTask(QMainWindow):
         self.view.setScene(self.scene)
         self.scene.addItem(QGraphicsPixmapItem(self.picture))
 
-    def keyPressEvent(self, event):
+    def searching(self):
+        name = self.line.text()
+        geocoder_params = {"geocode": name, "format": "json"}
+
+        response = requests.get(geocoder_api_server, params=geocoder_params)
+        if not response:
+            return None
+
+        json_response = response.json()
+        self.map_params = get_params(json_response, self.map_params['l'])
+        self.picture = change_picture(self.map_params)
+        self.draw()
+
+    def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_PageUp:
             self.map_params['z'] = self.map_params['z'] - 1
             if self.map_params['z'] < 0:
