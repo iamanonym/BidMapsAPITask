@@ -5,11 +5,13 @@ from PyQt5 import uic
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QByteArray
 import sys
+import math
 
 map_params = {'ll': '58.980282,53.407158',
               'z': 10, 'l': 'map'}
 geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
 map_api_server = "http://static-maps.yandex.ru/1.x/"
+search_api_server = "https://search-maps.yandex.ru/v1/"
 api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
 
 
@@ -19,6 +21,15 @@ def change_picture(map_params):
     pixmap = QPixmap()
     pixmap.loadFromData(QByteArray(file))
     return pixmap
+
+
+def count_length(a, b):
+    a1, a2 = map(float, a)
+    b1, b2 = map(float, b)
+    mid = math.radians((a1 + b1) / 2)
+    dx = abs(a1 - b1) * 111 * 1000 * math.cos(mid)
+    dy = abs(a2 - b2) * 111 * 1000
+    return math.sqrt(dx ** 2 + dy ** 2)
 
 
 def get_params(obj, arg_l, arg_z,
@@ -64,6 +75,41 @@ def get_name(params):
             toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
     except KeyError:
         return toponym["metaDataProperty"]["GeocoderMetaData"]["text"], None
+
+
+def get_org(params):
+    coord = tuple(map(float, params['ll'].split(',')))
+    response = requests.get(search_api_server, params=params)
+    obj = response.json()
+    coord2 = ()
+    min_path = None
+    min_top = None
+    map_params = {}
+    for toponym in obj['features']:
+        toponym_coodrinates = toponym["geometries"][0]["coordinates"]
+        top_long, top_lat = toponym_coodrinates
+        top_long, top_lat = float(top_long), float(top_lat)
+        if min_path is None:
+            coord2 = (top_long, top_lat)
+            if count_length(coord, coord2) <= 50:
+                min_path = count_length(coord, coord2)
+                min_top = toponym
+            else:
+                coord2 = ()
+        elif count_length(coord, (top_long, top_lat)) < min_path:
+            coord2 = (top_long, top_lat)
+            min_path = count_length(coord, coord2)
+            min_top = toponym
+    if min_top is not None:
+        try:
+            return min_top['properties']['CompanyMetaData']['name'], \
+                   min_top['properties']['CompanyMetaData']['postal_code'], \
+                   min_top["geometries"][0]["coordinates"]
+        except KeyError:
+            return min_top['properties']['CompanyMetaData']['name'], None, \
+                   min_top["geometries"][0]["coordinates"]
+    else:
+        return None, None, None
 
 
 class BigTask(QMainWindow):
@@ -170,10 +216,19 @@ class BigTask(QMainWindow):
                 self.picture = change_picture(self.map_params)
                 self.draw()
             elif event.button() == Qt.RightButton:
-                geocode_params = {'geocode': '{},{}'.format(x, y),
+                geocode_params = {'ll': '{},{}'.format(x, y),
+                                  "spn": "0.0008,0.000003",
                                   'lang': 'ru_RU',
                                   'apikey': api_key,
-                                  'type': 'biz'}
+                                  'type': 'biz',
+                                  'results': 500}
+                self.text, self.index, coord\
+                    = get_org(geocode_params)
+                self.indexing()
+                if coord:
+                    self.map_params['pt'] = '{},{},pm2vvm'.format(*coord)
+                    self.picture = change_picture(self.map_params)
+                    self.draw()
         else:
             return None
 
