@@ -55,6 +55,17 @@ def get_params(obj, arg_l, arg_z,
                 toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
 
 
+def get_name(params):
+    obj = requests.get(geocoder_api_server, params=params).json()
+    toponym = \
+        obj["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+    try:
+        return toponym["metaDataProperty"]["GeocoderMetaData"]["text"], \
+            toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
+    except KeyError:
+        return toponym["metaDataProperty"]["GeocoderMetaData"]["text"], None
+
+
 class BigTask(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -79,11 +90,15 @@ class BigTask(QMainWindow):
                 if not self.text.endswith(self.index):
                     self.text += ', {}'.format(self.index)
                     self.line2.setText(self.text)
+            elif self.text:
+                self.line2.setText(self.text)
         if self.rad2.isChecked():
             if self.text and self.index:
                 if self.text.endswith(self.index):
                     self.text = ', '.join(self.text.split(', ')[:-1])
                     self.line2.setText(self.text)
+            elif self.text:
+                self.line2.setText(self.text)
 
     def choose_map(self):
         self.map_params['l'] = 'map'
@@ -147,6 +162,10 @@ class BigTask(QMainWindow):
             y = y2 + \
                 (mid_y - y + 30) * 220 / (2 ** (self.map_params['z'] + 8))
             if event.button() == Qt.LeftButton:
+                map_params2 = {'geocode': '{},{}'.format(x, y),
+                               'format': 'json'}
+                self.text, self.index = get_name(map_params2)
+                self.indexing()
                 self.map_params['pt'] = '{},{},pm2vvm'.format(x, y)
                 self.picture = change_picture(self.map_params)
                 self.draw()
