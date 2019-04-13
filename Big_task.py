@@ -10,6 +10,7 @@ map_params = {'ll': '58.980282,53.407158',
               'z': 10, 'l': 'map'}
 geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
 map_api_server = "http://static-maps.yandex.ru/1.x/"
+api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
 
 
 def change_picture(map_params):
@@ -39,10 +40,15 @@ def get_params(obj, arg_l, arg_z,
         return map_params
     else:
         if radio:
-            return \
-                map_params, \
-                toponym["metaDataProperty"]["GeocoderMetaData"]["text"], \
-                toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
+            try:
+                return \
+                    map_params, \
+                    toponym["metaDataProperty"]["GeocoderMetaData"]["text"], \
+                    toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
+            except KeyError:
+                return map_params,  \
+                       toponym["metaDataProperty"]["GeocoderMetaData"]["text"], \
+                       None
         else:
             return \
                 map_params, \
@@ -122,13 +128,35 @@ class BigTask(QMainWindow):
             get_params(json_response, self.map_params['l'],
                        self.map_params['z'], radio=True,
                        booly=True)
-        if radio:
+        if radio and index:
             address += ', {}'.format(index)
         self.index = index
         self.text = address
         self.line2.setText(address)
         self.picture = change_picture(self.map_params)
         self.draw()
+
+    def mousePressEvent(self, event):
+        x, y = event.x(), event.y()
+        x -= 20
+        y -= 10
+        if 0 <= x <= 600 and 0 <= y <= 450:
+            mid_x, mid_y = 295, 200
+            x2, y2 = map(float, self.map_params['ll'].split(','))
+            x = x2 - ((mid_x - x) * 360 / (2 ** (self.map_params['z'] + 8)))
+            y = y2 + \
+                (mid_y - y + 30) * 220 / (2 ** (self.map_params['z'] + 8))
+            if event.button() == Qt.LeftButton:
+                self.map_params['pt'] = '{},{},pm2vvm'.format(x, y)
+                self.picture = change_picture(self.map_params)
+                self.draw()
+            elif event.button() == Qt.RightButton:
+                geocode_params = {'geocode': '{},{}'.format(x, y),
+                                  'lang': 'ru_RU',
+                                  'apikey': api_key,
+                                  'type': 'biz'}
+        else:
+            return None
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_PageUp:
